@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import xlwt
 from xlwt import Workbook
 from datetime import datetime
+import time
 
 
 #oblika
@@ -15,8 +16,46 @@ from datetime import datetime
 # Husqvarna
 
 baseUrl = "https://www.avto.net"
-# ccmMax=750 - filtrira ven vse 950 SM je in 1000+ ccm adventurje
-userUrl = "https://www.avto.net/Ads/results.asp?znamka=KTM&oblika=6010&EQ7=1110100120&EQ9=100000000&KAT=1060000000&ccmMax=750" #to be modified by user to choose Kategorija(avto, moto), Letnik, Znamka, oblika, ccmMax
+userUrl = "https://www.avto.net/Ads/results.asp?EQ7=1110100120&EQ9=100000000"
+
+print("Choose category (1-Avto, 2-Moto):")
+category = input()
+if(category == "2"):
+    userUrl += "&KAT=1060000000"
+
+print("Choose brand: (Audi, Vw, KTM...). Must be same as on Avto.net.")
+brand = input()
+userUrl += "&znamka=" + brand
+
+if(category == "2"):
+    print("What are you searching for 6010 - supermoto, 6002 - enduro, 6016 - cross")
+    motoType = input()
+    userUrl += "&oblika=" + motoType
+
+print("Choose min year (2012). Leave empty for all years.")
+yearMin = input()
+if(yearMin != ""):
+    userUrl += "&letnikMin=" + yearMin
+
+
+print("Choose max year (2018). Leave empty for all years.")
+yearMax = input()
+if(yearMax != ""):
+    userUrl += "&letnikMax=" + yearMax
+
+print("Choose min cmm: (ex: 125, leave blank for any min ccm)")
+minCcm = input()
+if(minCcm != ""):
+    userUrl += "&ccmMin=" + minCcm
+
+print("Choose max ccm: (ex: 750, leave blank for any max ccm)")
+maxCcm = input()
+if(maxCcm != ""):
+    userUrl += "&ccmMax=" + maxCcm
+
+print("Choose words to be filtered out of vehicle name. For example if you don't want any DUKE in your results, write DUKE.")
+print("You can write multiple words, seperate them with comma (,). Ex: Duke,LC4,EXC")
+wordsToBeFilteredOut = input()
 
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36"}
 
@@ -44,7 +83,12 @@ sheet.write(0, 8, "ID")
 for index, vehicle in enumerate(vehicles):
     #filter out models that you dont want
     currentModel = vehicleNames.__getitem__(index).get_text().strip()
-    if ("DUKE" in currentModel.upper() or "LC4" in currentModel):  #TODO: modify to accept user input
+    needToBreak = False
+    for word in wordsToBeFilteredOut.split(","):
+        if(word.upper() in currentModel.upper()):
+            needToBreak = True
+
+    if(needToBreak):
         continue
 
     #find vehicle url and parse each one to get more info
@@ -113,4 +157,8 @@ for index, vehicle in enumerate(vehicles):
 
     print("*******************************NEXT RESULT******************************")
 
-wb.save("test.xls")
+try:
+    wb.save("test.xls")
+except:
+    print("You need to close the excel file. The results are not saved. Try again. Closing in 3 seconds...")
+    time.sleep(3)
