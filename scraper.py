@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import xlwt
 from xlwt import Workbook
+from datetime import datetime
+
 
 #oblika
 #6010 - supermoto
@@ -24,19 +26,27 @@ pageContent = BeautifulSoup(page.content, "html.parser")
 
 #find vehicles
 vehicles = pageContent.findAll("div", {"class": "row bg-white position-relative GO-Results-Row GO-Shadow-B"})
+vehicleNames = pageContent.findAll("div", {"class": "GO-Results-Naziv bg-dark px-3 py-2 font-weight-bold text-truncate text-white text-decoration-none"})
 
 wb = Workbook()
 sheet = wb.add_sheet("Sheet")
-sheet.write(0, 0, "Letnik")
-sheet.write(0, 1, "Kilometri")
-sheet.write(0, 2, "Lastnik")
-sheet.write(0, 3, "Avto hiša")
-sheet.write(0, 4, "Cena")
-sheet.write(0, 5, "Link")
-sheet.write(0, 6, "Date added")
+sheet.write(0, 0, "Model")
+sheet.write(0, 1, "Letnik")
+sheet.write(0, 2, "Kilometri")
+sheet.write(0, 3, "Lastnik")
+sheet.write(0, 4, "Avto hiša")
+sheet.write(0, 5, "Cena")
+sheet.write(0, 6, "Link")
+sheet.write(0, 7, "Date added")
+sheet.write(0, 8, "ID")
 
 
 for index, vehicle in enumerate(vehicles):
+    #filter out models that you dont want
+    currentModel = vehicleNames.__getitem__(index).get_text().strip()
+    if ("DUKE" in currentModel.upper() or "LC4" in currentModel):  #TODO: modify to accept user input
+        continue
+
     #find vehicle url and parse each one to get more info
     vehicleUrl = baseUrl + BeautifulSoup(str(vehicle), "html.parser").find("a", {"class": "stretched-link"})["href"][2:]
     print("Url:" + vehicleUrl)
@@ -65,8 +75,8 @@ for index, vehicle in enumerate(vehicles):
                     kilometri = "/"
         except:
             pass
-        #Lastnik
         try:
+            #Lastnik
             for extraPodatek in temp.findAll("li"):
                 if("lastnik" in extraPodatek.get_text()):
                     lastnik = extraPodatek.get_text()
@@ -80,22 +90,26 @@ for index, vehicle in enumerate(vehicles):
     except:
         avtohisa="NE"
 
-    print("Letnik: " + year)
-    print("Kilometri: " + kilometri)
-    print("Lastnik: " + lastnik)
-    print("Avtohiša: " + avtohisa)
-    print("Cena: " + price)
-    #add date added to excel
+    #Get the ID of the vehicle
+    id = year+kilometri+lastnik+avtohisa
+    #if id in set - continue
 
     #Write to excel
-    #numberOfRows = len(sheet._Worksheet__rows
-    sheet.write(index+1, 0, year)
-    sheet.write(index+1, 1, kilometri)
-    sheet.write(index + 1, 2, lastnik)
-    sheet.write(index + 1, 3, avtohisa)
-    sheet.write(index + 1, 4, price)
-    sheet.write(index + 1, 5, vehicleUrl)
+    #numberOfRows = len(sheet._Worksheet__rows) //TODO: modify to only append to excel not overwrite (get length + 1)
+    sheet.write(index + 1, 0, currentModel)
+    sheet.write(index + 1, 1, year)
+    sheet.write(index + 1, 2, kilometri)
+    sheet.write(index + 1, 3, lastnik)
+    sheet.write(index + 1, 4, avtohisa)
+    sheet.write(index + 1, 5, price)
+    sheet.write(index + 1, 6, vehicleUrl)
+    sheet.write(index + 1, 7, datetime.today().strftime('%Y-%m-%d'))
+    sheet.write(index + 1, 8, year+kilometri+lastnik+avtohisa)
 
+    #user input
+    #vsakemu vehiclu dodaj ID(letnik, kilometri, lastnik, avtohisa), ko poženeš skripto moraš preverit IDje
+    #če je že v bazi, preveriš če se je cena kej spremenila
+    #če ne ga appendaš na koncu baze
 
     print("*******************************NEXT RESULT******************************")
 
